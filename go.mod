@@ -1,4 +1,4 @@
-module github.com/yourusername/go-trace-sdk
+module github.com/moolya-ai/go-trace-sdk
 
 go 1.22.5
 
