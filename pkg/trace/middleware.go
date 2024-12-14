@@ -90,14 +90,14 @@ func GinTraceMiddleware() gin.HandlerFunc {
 		}
 
 		// Send log to the backend
-		logger("info", logEntry)
+		Logger("info", logEntry)
 	}
 }
 
 
 
 // LogToBackend sends a log entry to the backend
-func logger(level LogLevel, entry LogEntry) {
+func Logger(level LogLevel, entry LogEntry) {
 	entry.Level = level
 	payload, err := json.Marshal(entry)	
 	if err != nil {
