@@ -3,8 +3,8 @@ package trace
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
@@ -12,6 +12,7 @@ import (
 )
 
 var BackendLogURL string
+var APIKey string
 
 // LogEntry represents the structure of a log sent to the backend
 type LogEntry struct {
@@ -23,6 +24,7 @@ type LogEntry struct {
 	RequestBody string `json:"request_body,omitempty"`
 	ResponseBody string `json:"response_body,omitempty"`
 	Latency     string `json:"latency"`
+	Timestamp   string `json:"timestamp"`
 	Level       LogLevel `json:"level"`
 }
 
@@ -38,8 +40,9 @@ func (w *CustomResponseWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-func InitLogger(backendURL string) {
+func InitLogger(backendURL string, apiKey string) {
 	BackendLogURL = backendURL
+	APIKey = apiKey
 }
 
 // GinTraceMiddleware sets up the Trace ID and logs requests and responses
@@ -87,10 +90,15 @@ func GinTraceMiddleware() gin.HandlerFunc {
 			RequestBody:  requestBody,
 			ResponseBody: responseBody,
 			Latency:      latency.String(),
+			Timestamp:    time.Now().Format(time.RFC3339),
 		}
-
+		fmt.Printf("THIS IS THE LOG ENTRY %v", logEntry)
 		// Send log to the backend
-		Logger("info", logEntry)
+		if c.Writer.Status() >= 400 {
+			Logger("error", logEntry)
+		} else {
+			Logger("info", logEntry)
+		}
 	}
 }
 
@@ -101,18 +109,28 @@ func Logger(level LogLevel, entry LogEntry) {
 	entry.Level = level
 	payload, err := json.Marshal(entry)	
 	if err != nil {
-		log.Printf("Failed to marshal log entry: %v", err)
+		fmt.Printf("Failed to marshal log entry: %v", err)
 		return
 	}
-
-	resp, err := http.Post(BackendLogURL, "application/json", bytes.NewBuffer(payload))
+	fmt.Printf("THIS IS THE PAYLOAD %v", payload)
+	
+	req, err := http.NewRequest("POST", BackendLogURL, bytes.NewBuffer(payload))
 	if err != nil {
-		log.Printf("Failed to send log entry to backend: %v", err)
+		fmt.Printf("Failed to create request: %v", err)
+		return
+	}
+	req.Header.Set("X-Moolya-API-Key", APIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Failed to send log entry to backend: %v", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("Backend log entry returned status code: %d", resp.StatusCode)
+		fmt.Printf("Backend log entry returned status code: %d", resp.StatusCode)
 	}
 }
