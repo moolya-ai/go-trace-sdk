@@ -16,16 +16,16 @@ var APIKey string
 
 // LogEntry represents the structure of a log sent to the backend
 type LogEntry struct {
-	TraceID     string `json:"trace_id"`
-	Method      string `json:"method"`
-	URL         string `json:"url"`
-	StatusCode  int    `json:"status_code"`
-	ClientIP    string `json:"client_ip"`
-	RequestBody string `json:"request_body,omitempty"`
-	ResponseBody string `json:"response_body,omitempty"`
-	Latency     string `json:"latency"`
-	Timestamp   string `json:"timestamp"`
-	Level       LogLevel `json:"level"`
+	TraceID      string   `json:"trace_id"`
+	Method       string   `json:"method"`
+	URL          string   `json:"url"`
+	StatusCode   int      `json:"status_code"`
+	ClientIP     string   `json:"client_ip"`
+	RequestBody  string   `json:"request_body,omitempty"`
+	ResponseBody string   `json:"response_body,omitempty"`
+	Latency      string   `json:"latency"`
+	Timestamp    string   `json:"timestamp"`
+	Level        LogLevel `json:"level"`
 }
 
 // CustomResponseWriter wraps gin.ResponseWriter to capture the response body
@@ -35,7 +35,7 @@ type CustomResponseWriter struct {
 }
 
 func (w *CustomResponseWriter) Write(b []byte) (int, error) {
-	
+
 	w.body.Write(b) // Capture the response body
 	return w.ResponseWriter.Write(b)
 }
@@ -102,18 +102,16 @@ func GinTraceMiddleware() gin.HandlerFunc {
 	}
 }
 
-
-
 // LogToBackend sends a log entry to the backend
 func Logger(level LogLevel, entry LogEntry) {
 	entry.Level = level
-	payload, err := json.Marshal(entry)	
+	payload, err := json.Marshal(entry)
 	if err != nil {
 		fmt.Printf("Failed to marshal log entry: %v", err)
 		return
 	}
 	fmt.Printf("THIS IS THE PAYLOAD %v", payload)
-	
+
 	req, err := http.NewRequest("POST", BackendLogURL, bytes.NewBuffer(payload))
 	if err != nil {
 		fmt.Printf("Failed to create request: %v", err)
